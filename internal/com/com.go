@@ -2,6 +2,7 @@ package com
 
 import (
 	"log"
+	"strings"
 
 	"go.bug.st/serial"
 )
@@ -25,10 +26,10 @@ var Speeds = []int{110, 9600, 115200}
 func GetPorts() []string {
 	ports, err := serial.GetPortsList()
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
-	if ports == nil {
-		log.Fatal("no ports found")
+	if len(ports) == 0 {
+		log.Print("no avaliable ports found")
 	}
 
 	return ports
@@ -43,30 +44,47 @@ func GetParities(p map[string]serial.Parity) []string {
 	return keys
 }
 
-func (p Port) SendData(mode *serial.Mode, msg string) {
-	port, err := serial.Open(p.Name, mode)
+func SendData(portName string, mode *serial.Mode, msg string) {
+	port, err := serial.Open(portName, mode)
 	if err != nil {
 		log.Fatal("cannot open port")
 	}
-	defer port.Close()
 	n, err := port.Write([]byte(msg))
 	log.Printf("Written %d bytes", n)
 	if err != nil {
 		log.Fatal("cannot send data")
 	}
+	err = port.Close()
+	if err != nil {
+		return
+	}
 }
 
-func (p Port) RecieveData(mode *serial.Mode) (string, error) {
-	port, err := serial.Open(p.Name, mode)
+func RecieveData(portName string, mode *serial.Mode) (string, error) {
+	port, err := serial.Open(portName, mode)
 	if err != nil {
 		log.Fatal("cannot open port")
 	}
-	defer port.Close()
 	buf := make([]byte, 256)
-	n, err := port.Read(buf)
-	if err != nil {
-		log.Fatal("cannot read from port")
+	var receivedBytes = 0
+	for {
+		n, err := port.Read(buf)
+		if err != nil {
+			log.Print("cannot read from port")
+			return "", err
+		}
+		log.Printf("Recieved %d bytes", n)
+		if receivedBytes == 0 {
+			log.Println("\nEOF")
+			break
+		}
+		if strings.Contains(string(buf[:receivedBytes]), "\n") {
+			break
+		}
 	}
-	log.Printf("Recieved %d bytes", n)
+	err = port.Close()
+	if err != nil {
+		return "", err
+	}
 	return string(buf), nil
 }

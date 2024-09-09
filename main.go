@@ -7,6 +7,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/widget"
 	"github.com/ranty97/cnb/internal/com"
 	"github.com/ranty97/cnb/internal/utils"
@@ -15,7 +16,7 @@ import (
 
 func main() {
 	App := app.New()
-	mainWindow := App.NewWindow("LAB 1")
+	mainWindow := App.NewWindow("OKS")
 	mainWindow.Resize(fyne.Size{Width: 500, Height: 500})
 
 	var sName, rName string
@@ -63,9 +64,29 @@ func main() {
 		com.GetParities(com.ParityMap),
 		func(s string) {
 			parityMode = com.ParityMap[s]
-			log.Printf("Parity mode changed: %s", string(parityMode))
+			print(parityMode)
+			log.Printf("Parity mode changed: %s", s)
 		},
 	)
+
+	input := widget.NewEntry()
+	var inputMessage string
+	inputMessageBinding := binding.BindString(&inputMessage)
+	input.Bind(inputMessageBinding)
+	input.SetPlaceHolder("Type text to transfer")
+
+	sendButton := widget.NewButton("Send", func() {
+		msg, err := inputMessageBinding.Get()
+		if err != nil {
+			log.Printf("no message provided")
+		}
+		com.SendData(sName, &serial.Mode{BaudRate: sSpeed, Parity: parityMode}, msg+"\n")
+		rMsg, err := com.RecieveData(rName, &serial.Mode{BaudRate: rSpeed, Parity: parityMode})
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Received massage: %s", rMsg)
+	})
 
 	mainWindow.SetContent(container.NewVBox(
 		sDropdownWidget,
@@ -73,6 +94,8 @@ func main() {
 		sSpeedDropdownWidget,
 		rSpeedDropdownWidget,
 		parityDropdownWidget,
+		input,
+		sendButton,
 		widget.NewButton("Quit", func() {
 			App.Quit()
 		})))
