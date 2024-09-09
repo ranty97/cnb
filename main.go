@@ -7,7 +7,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/widget"
 	"github.com/ranty97/cnb/internal/com"
 	"github.com/ranty97/cnb/internal/utils"
@@ -69,36 +68,49 @@ func main() {
 		},
 	)
 
+	// input := widget.NewEntry()
+	// var inputMessage string
+	// inputMessageBinding := binding.BindString(&inputMessage)
+	// input.Bind(inputMessageBinding)
+	// input.SetPlaceHolder("Type text to transfer")
+
+	// sendButton := widget.NewButton("Send", func() {
+	// 	msg, err := inputMessageBinding.Get()
+	// 	if err != nil {
+	// 		log.Printf("no message provided")
+	// 	}
+	// 	com.SendData(sName, &serial.Mode{BaudRate: sSpeed, Parity: parityMode}, msg+"\n")
+	// 	rMsg, err := com.RecieveData(rName, &serial.Mode{BaudRate: rSpeed, Parity: parityMode})
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	log.Printf("Received massage: %s", rMsg)
+	// })
+
 	input := widget.NewEntry()
-	var inputMessage string
-	inputMessageBinding := binding.BindString(&inputMessage)
-	input.Bind(inputMessageBinding)
-	input.SetPlaceHolder("Type text to transfer")
+	input.SetPlaceHolder("Type something...")
 
-	sendButton := widget.NewButton("Send", func() {
-		msg, err := inputMessageBinding.Get()
-		if err != nil {
-			log.Printf("no message provided")
-		}
-		com.SendData(sName, &serial.Mode{BaudRate: sSpeed, Parity: parityMode}, msg+"\n")
-		rMsg, err := com.RecieveData(rName, &serial.Mode{BaudRate: rSpeed, Parity: parityMode})
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Printf("Received massage: %s", rMsg)
-	})
+	input.OnSubmitted = func(content string) {
+		// Обработчик ввода после нажатия Enter
+		fyne.CurrentApp().SendNotification(&fyne.Notification{
+			Title:   "Input Received",
+			Content: content,
+		})
+	}
 
-	mainWindow.SetContent(container.NewVBox(
-		sDropdownWidget,
-		rDropdownWidget,
-		sSpeedDropdownWidget,
-		rSpeedDropdownWidget,
-		parityDropdownWidget,
+	l := container.NewVBox(
+		container.NewHBox(widget.NewLabel("Tx Name:"), sDropdownWidget),
+		container.NewHBox(widget.NewLabel("Rx Name:"), rDropdownWidget),
+		container.NewHBox(widget.NewLabel("Tx Speed:"), sSpeedDropdownWidget),
+		container.NewHBox(widget.NewLabel("Rx Speed:"), rSpeedDropdownWidget),
+		container.NewHBox(widget.NewLabel("Parity mode:"), parityDropdownWidget),
 		input,
-		sendButton,
+		//sendButton,
 		widget.NewButton("Quit", func() {
 			App.Quit()
-		})))
+		}),
+	)
 
+	mainWindow.SetContent(l)
 	mainWindow.ShowAndRun()
 }
