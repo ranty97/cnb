@@ -7,6 +7,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/widget"
 	"github.com/ranty97/cnb/internal/com"
 	"github.com/ranty97/cnb/internal/utils"
@@ -15,8 +16,8 @@ import (
 
 func main() {
 	App := app.New()
-	mainWindow := App.NewWindow("OKS")
-	mainWindow.Resize(fyne.Size{Width: 500, Height: 500})
+	mainWindow := App.NewWindow("OKS LAB1")
+	mainWindow.Resize(fyne.Size{Width: 500, Height: 265})
 
 	var sName, rName string
 
@@ -35,6 +36,9 @@ func main() {
 			log.Printf("Receiver changed: %s", rName)
 		},
 	)
+
+	sDropdownWidget.SetSelectedIndex(0)
+	rDropdownWidget.SetSelectedIndex(1)
 
 	var rSpeed = com.Speeds[0]
 	var sSpeed = com.Speeds[0]
@@ -57,6 +61,9 @@ func main() {
 		},
 	)
 
+	sSpeedDropdownWidget.SetSelectedIndex(0)
+	rSpeedDropdownWidget.SetSelectedIndex(1)
+
 	var parityMode = serial.EvenParity
 
 	parityDropdownWidget := widget.NewSelect(
@@ -68,35 +75,33 @@ func main() {
 		},
 	)
 
-	// input := widget.NewEntry()
-	// var inputMessage string
-	// inputMessageBinding := binding.BindString(&inputMessage)
-	// input.Bind(inputMessageBinding)
-	// input.SetPlaceHolder("Type text to transfer")
-
-	// sendButton := widget.NewButton("Send", func() {
-	// 	msg, err := inputMessageBinding.Get()
-	// 	if err != nil {
-	// 		log.Printf("no message provided")
-	// 	}
-	// 	com.SendData(sName, &serial.Mode{BaudRate: sSpeed, Parity: parityMode}, msg+"\n")
-	// 	rMsg, err := com.RecieveData(rName, &serial.Mode{BaudRate: rSpeed, Parity: parityMode})
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	log.Printf("Received massage: %s", rMsg)
-	// })
+	parityDropdownWidget.SetSelectedIndex(0)
 
 	input := widget.NewEntry()
-	input.SetPlaceHolder("Type something...")
+	var inputMessage string
+	inputMessageBinding := binding.BindString(&inputMessage)
+	input.Bind(inputMessageBinding)
+	input.SetPlaceHolder("Type text to transfer")
 
-	input.OnSubmitted = func(content string) {
-		// Обработчик ввода после нажатия Enter
-		fyne.CurrentApp().SendNotification(&fyne.Notification{
-			Title:   "Input Received",
-			Content: content,
-		})
+	receivedMessageLabel := widget.NewLabel("Received Message")
+
+	updateLabel := func(newMessage string) {
+		receivedMessageLabel.SetText(newMessage)
 	}
+
+	sendButton := widget.NewButton("Send", func() {
+		msg, err := inputMessageBinding.Get()
+		if err != nil {
+			log.Printf("no message provided")
+		}
+		com.SendData(sName, &serial.Mode{BaudRate: sSpeed, Parity: parityMode}, msg+"\n")
+		rMsg, err := com.ReceiveData(rName, &serial.Mode{BaudRate: rSpeed, Parity: parityMode})
+		if err != nil {
+			log.Fatal(err)
+		}
+		updateLabel(rMsg)
+		log.Printf("Received massage: %s", rMsg)
+	})
 
 	l := container.NewVBox(
 		container.NewHBox(widget.NewLabel("Tx Name:"), sDropdownWidget),
@@ -105,10 +110,8 @@ func main() {
 		container.NewHBox(widget.NewLabel("Rx Speed:"), rSpeedDropdownWidget),
 		container.NewHBox(widget.NewLabel("Parity mode:"), parityDropdownWidget),
 		input,
-		//sendButton,
-		widget.NewButton("Quit", func() {
-			App.Quit()
-		}),
+		sendButton,
+		receivedMessageLabel,
 	)
 
 	mainWindow.SetContent(l)

@@ -1,10 +1,9 @@
 package com
 
 import (
+	"go.bug.st/serial"
 	"log"
 	"strings"
-
-	"go.bug.st/serial"
 )
 
 type Port struct {
@@ -29,7 +28,7 @@ func GetPorts() []string {
 		log.Print(err)
 	}
 	if len(ports) == 0 {
-		log.Print("no avaliable ports found")
+		log.Print("no available ports found")
 	}
 
 	return ports
@@ -60,7 +59,7 @@ func SendData(portName string, mode *serial.Mode, msg string) {
 	}
 }
 
-func RecieveData(portName string, mode *serial.Mode) (string, error) {
+func ReceiveData(portName string, mode *serial.Mode) (string, error) {
 	port, err := serial.Open(portName, mode)
 	if err != nil {
 		log.Fatal("cannot open port")
@@ -68,16 +67,13 @@ func RecieveData(portName string, mode *serial.Mode) (string, error) {
 	buf := make([]byte, 256)
 	var receivedBytes = 0
 	for {
-		n, err := port.Read(buf)
+		receivedBytes, err = port.Read(buf)
 		if err != nil {
 			log.Print("cannot read from port")
 			return "", err
 		}
-		log.Printf("Recieved %d bytes", n)
-		if receivedBytes == 0 {
-			log.Println("\nEOF")
-			break
-		}
+		log.Printf("Received %d bytes", receivedBytes)
+
 		if strings.Contains(string(buf[:receivedBytes]), "\n") {
 			break
 		}
