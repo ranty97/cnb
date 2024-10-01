@@ -90,17 +90,22 @@ func main() {
 	}
 
 	sendButton := widget.NewButton("Send", func() {
-		msg, err := inputMessageBinding.Get()
-		if err != nil {
-			log.Printf("no message provided")
-		}
-		com.SendData(sName, &serial.Mode{BaudRate: sSpeed, Parity: parityMode}, msg+"\n")
-		rMsg, err := com.ReceiveData(rName, &serial.Mode{BaudRate: rSpeed, Parity: parityMode})
+		msg, _ := inputMessageBinding.Get()
+		com.Port{
+			Name:   sName,
+			Speed:  sSpeed,
+			Parity: parityMode,
+		}.SendBytes(com.InitializePacket([]byte(msg)).SerializePacket())
+		packet, err := com.Port{
+			Name:   rName,
+			Speed:  rSpeed,
+			Parity: parityMode,
+		}.ReceivePacket()
 		if err != nil {
 			log.Fatal(err)
 		}
-		updateLabel(rMsg)
-		log.Printf("Received massage: %s", rMsg)
+		updateLabel(string(packet.Data))
+		log.Println(packet)
 	})
 
 	l := container.NewVBox(

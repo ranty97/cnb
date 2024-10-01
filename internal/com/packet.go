@@ -2,12 +2,11 @@ package com
 
 import (
 	"errors"
-	"github.com/ranty97/cnb/internal/utils"
 	"log"
 )
 
-const Flag = 'v' + '$'
-const escapedByte = 'v' + 21
+const Flag = 'z'
+const escapedByte = 'z' + 33
 
 type Packet struct {
 	Flag               byte
@@ -30,22 +29,16 @@ func InitializePacket(data []byte) *Packet {
 func (p *Packet) SerializePacket() []byte {
 	var packet []byte
 	packet = append(packet, p.Flag, p.SourceAddress, p.DestinationAddress)
-	frameData := utils.Encode(p.Data)
-	frameData = byteStuffing(frameData)
-	packet = append(packet, frameData...)
+	packet = append(packet, byteStuffing(p.Data)...)
 	packet = append(packet, p.FSC)
 	return packet
 }
 
-func (p *Packet) DeserializePacket(raw []byte) (Packet, error) {
+func DeserializePacket(raw []byte) (Packet, error) {
 	if raw[0] != Flag {
 		return Packet{}, errors.New("incorrect flag")
 	}
 	data := deByteStuffing(raw[3 : len(raw)-1])
-	data, err := utils.Decode(data)
-	if err != nil {
-		return Packet{}, err
-	}
 	packet := Packet{
 		Flag:               raw[0],
 		SourceAddress:      raw[1],
@@ -60,10 +53,13 @@ func (p *Packet) DeserializePacket(raw []byte) (Packet, error) {
 func byteStuffing(data []byte) []byte {
 	var byteStuffed []byte
 	for _, b := range data {
-		if b == Flag || b == escapedByte {
+		if b == byte(122) || b == escapedByte {
 			byteStuffed = append(byteStuffed, escapedByte)
+			log.Println(byteStuffed)
+			byteStuffed = append(byteStuffed, b^0x20)
 		}
 		byteStuffed = append(byteStuffed, b)
+		log.Println(byteStuffed)
 	}
 	if len(data) != len(byteStuffed) {
 		log.Println("Byte stuffing:\n", data, " -> ", byteStuffed)
