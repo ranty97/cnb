@@ -21,11 +21,11 @@ type Packet struct {
 	FSC                byte
 }
 
-func InitializePacket(data []byte) *Packet {
+func InitializePacket(data []byte, portNumber byte) *Packet {
 	return &Packet{
 		Flag:               Flag,
 		Special:            Special,
-		SourceAddress:      0,
+		SourceAddress:      portNumber,
 		DestinationAddress: 0,
 		Data:               data,
 		FSC:                1,
@@ -96,7 +96,7 @@ func deByteStuffing(data []byte) []byte {
 	return deByteStuffed
 }
 
-func SplitDataIntoPackets(data []byte) ([]Packet, int) {
+func SplitDataIntoPackets(data []byte, portNumber byte) ([]Packet, int) {
 	var packets []Packet
 	packetCount := 0
 
@@ -106,7 +106,7 @@ func SplitDataIntoPackets(data []byte) ([]Packet, int) {
 			packetSize = len(data)
 		}
 
-		packet := InitializePacket(data[:packetSize])
+		packet := InitializePacket(data[:packetSize], portNumber)
 		packets = append(packets, *packet)
 
 		packetCount++

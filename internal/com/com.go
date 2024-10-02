@@ -1,6 +1,7 @@
 package com
 
 import (
+	"github.com/ranty97/cnb/internal/utils"
 	"go.bug.st/serial"
 	"log"
 	"strings"
@@ -103,7 +104,8 @@ func (p Port) SendPacket(packet Packet) {
 }
 
 func (p Port) SendData(data []byte) int {
-	packets, packetCount := SplitDataIntoPackets(data)
+	portNumber, _ := utils.LastCharacterAsNumber(p.Name)
+	packets, packetCount := SplitDataIntoPackets(data, byte(portNumber))
 
 	for _, packet := range packets {
 		p.SendPacket(packet)
