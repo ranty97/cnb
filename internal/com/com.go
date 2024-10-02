@@ -102,6 +102,18 @@ func (p Port) SendPacket(packet Packet) {
 	p.SendBytes(packet.SerializePacket())
 }
 
+func (p Port) SendData(data []byte) int {
+	packets, packetCount := SplitDataIntoPackets(data)
+
+	for _, packet := range packets {
+		p.SendPacket(packet)
+		log.Println(packet)
+	}
+
+	log.Printf("Sent %d packets\n", packetCount)
+	return packetCount
+}
+
 func (p Port) ReceiveBytes() ([]byte, error) {
 	port, err := serial.Open(p.Name, &serial.Mode{BaudRate: p.Speed, Parity: p.Parity})
 	if err != nil {
@@ -119,10 +131,13 @@ func (p Port) ReceiveBytes() ([]byte, error) {
 	return buff[:n], nil
 }
 
-func (p Port) ReceivePacket() (Packet, error) {
+func (p Port) ReceivePacket() ([][]byte, error) {
 	data, err := p.ReceiveBytes()
 	if err != nil {
-		return Packet{}, err
+		return [][]byte{}, err
 	}
-	return DeserializePacket(data)
+	//could use processing func (ex. destuffing)
+	return DeserializeStream(data, func(bytes []byte) []byte {
+		return bytes
+	})
 }

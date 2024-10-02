@@ -95,7 +95,7 @@ func main() {
 			Name:   sName,
 			Speed:  sSpeed,
 			Parity: parityMode,
-		}.SendBytes(com.InitializePacket([]byte(msg)).SerializePacket())
+		}.SendData([]byte(msg))
 		packet, err := com.Port{
 			Name:   rName,
 			Speed:  rSpeed,
@@ -104,8 +104,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		updateLabel(string(packet.Data))
-		log.Println(packet)
+
+		updateLabel(string(ConcatenateByteSlices(packet)))
 	})
 
 	l := container.NewVBox(
@@ -121,4 +121,12 @@ func main() {
 
 	mainWindow.SetContent(l)
 	mainWindow.ShowAndRun()
+}
+
+func ConcatenateByteSlices(slices [][]byte) []byte {
+	var result []byte
+	for _, slice := range slices {
+		result = append(result, slice...)
+	}
+	return result
 }
