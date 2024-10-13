@@ -1,7 +1,6 @@
 package com
 
 import (
-	"errors"
 	"log"
 )
 
@@ -10,6 +9,7 @@ const (
 	Special           = 'v'
 	escapedByte       = 0x7D
 	MaxPacketDataSize = 22
+	FCS               = 1
 )
 
 type Packet struct {
@@ -28,7 +28,7 @@ func InitializePacket(data []byte, portNumber byte) *Packet {
 		SourceAddress:      portNumber,
 		DestinationAddress: 0,
 		Data:               data,
-		FSC:                1,
+		FSC:                FCS,
 	}
 }
 
@@ -38,23 +38,6 @@ func (p *Packet) SerializePacket() []byte {
 	packet = append(packet, byteStuffing(p.Data)...)
 	packet = append(packet, p.FSC)
 	return packet
-}
-
-func DeserializePacket(raw []byte) (Packet, error) {
-	if raw[0] != Flag {
-		return Packet{}, errors.New("incorrect flag")
-	}
-	data := deByteStuffing(raw[3 : len(raw)-1])
-	packet := Packet{
-		Flag:               raw[0],
-		Special:            raw[1],
-		SourceAddress:      raw[2],
-		DestinationAddress: raw[3],
-		Data:               data,
-		FSC:                raw[len(raw)-1],
-	}
-
-	return packet, nil
 }
 
 func byteStuffing(data []byte) []byte {
@@ -70,30 +53,6 @@ func byteStuffing(data []byte) []byte {
 		log.Println("Byte stuffing:\n", data, " -> ", byteStuffed)
 	}
 	return byteStuffed
-}
-
-func deByteStuffing(data []byte) []byte {
-	var deByteStuffed []byte
-	escaped := false // flag to track if the previous byte was the escape byte
-
-	for _, b := range data {
-		if escaped {
-			if b == Flag || b == escapedByte {
-				deByteStuffed = append(deByteStuffed, b)
-			}
-			escaped = false
-		} else {
-			if b == escapedByte {
-				escaped = true
-			} else {
-				deByteStuffed = append(deByteStuffed, b)
-			}
-		}
-	}
-	if len(data) != len(deByteStuffed) {
-		log.Println("Byte de-stuffing:\n", data, " -> ", deByteStuffed)
-	}
-	return deByteStuffed
 }
 
 func SplitDataIntoPackets(data []byte, portNumber byte) ([]Packet, int) {
@@ -140,8 +99,8 @@ func DeserializeStream(raw []byte, processPacket func([]byte) []byte) ([][]byte,
 		if raw[i] == Flag {
 			// Если текущие данные не пустые, добавляем их как пакет, пропуская байт 1
 			if len(currentData) > 0 {
-				// Пропускаем последний байт, если он равен 1
-				if currentData[len(currentData)-1] == 1 {
+				// Пропускаем последний байт, если он равен 1 (FCS)
+				if currentData[len(currentData)-1] == FCS {
 					currentData = currentData[:len(currentData)-1] // Убираем байт 1
 				}
 				// Обрабатываем пакет
@@ -159,7 +118,7 @@ func DeserializeStream(raw []byte, processPacket func([]byte) []byte) ([][]byte,
 
 	// Проверяем, остались ли данные после последнего флага
 	if len(currentData) > 0 {
-		if currentData[len(currentData)-1] == 1 {
+		if currentData[len(currentData)-1] == FCS {
 			currentData = currentData[:len(currentData)-1] // Убираем байт 1
 		}
 		// Обрабатываем последний пакет
