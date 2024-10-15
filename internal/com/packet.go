@@ -1,6 +1,10 @@
 package com
 
 import (
+	"encoding/binary"
+	"fmt"
+	"github.com/ranty97/cnb/internal/crc"
+	"github.com/ranty97/cnb/internal/utils"
 	"log"
 )
 
@@ -9,7 +13,6 @@ const (
 	Special           = 'v'
 	escapedByte       = 0x7D
 	MaxPacketDataSize = 22
-	FCS               = 1
 )
 
 type Packet struct {
@@ -18,7 +21,7 @@ type Packet struct {
 	SourceAddress      byte
 	DestinationAddress byte
 	Data               []byte
-	FSC                byte
+	FSC                uint32
 }
 
 func InitializePacket(data []byte, portNumber byte) *Packet {
@@ -28,7 +31,7 @@ func InitializePacket(data []byte, portNumber byte) *Packet {
 		SourceAddress:      portNumber,
 		DestinationAddress: 0,
 		Data:               data,
-		FSC:                FCS,
+		FSC:                crc.CalculateCRC(data),
 	}
 }
 
@@ -36,7 +39,9 @@ func (p *Packet) SerializePacket() []byte {
 	var packet []byte
 	packet = append(packet, p.Flag, p.Special, p.SourceAddress, p.DestinationAddress)
 	packet = append(packet, byteStuffing(p.Data)...)
-	packet = append(packet, p.FSC)
+	fcsBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(fcsBytes, p.FSC)
+	packet = append(packet, fcsBytes...)
 	return packet
 }
 
@@ -66,6 +71,9 @@ func SplitDataIntoPackets(data []byte, portNumber byte) ([]Packet, int) {
 		}
 
 		packet := InitializePacket(data[:packetSize], portNumber)
+
+		utils.InvertRandomBitWithProbability(packet.Data, 0.7)
+
 		packets = append(packets, *packet)
 
 		packetCount++
@@ -83,46 +91,56 @@ func DeserializeStream(raw []byte, processPacket func([]byte) []byte) ([][]byte,
 
 	for i := 0; i < len(raw); i++ {
 		if escaped {
-			// Если мы видим байт после escaped, добавляем его к текущим данным
 			currentData = append(currentData, raw[i])
-			escaped = false // Сбрасываем флаг escaped
+			escaped = false
 			continue
 		}
 
 		if raw[i] == escapedByte {
-			// Устанавливаем флаг, что следующий байт будет застаффленным
 			escaped = true
-			currentData = append(currentData, raw[i]) // Добавляем escapedByte в текущие данные
 			continue
 		}
 
 		if raw[i] == Flag {
-			// Если текущие данные не пустые, добавляем их как пакет, пропуская байт 1
+			// Если собраны данные, проверим их целостность
 			if len(currentData) > 0 {
-				// Пропускаем последний байт, если он равен 1 (FCS)
-				if currentData[len(currentData)-1] == FCS {
-					currentData = currentData[:len(currentData)-1] // Убираем байт 1
+				packetData := currentData[:len(currentData)-4]
+				fscReceived := binary.BigEndian.Uint32(currentData[len(currentData)-4:])
+
+				// Проверка CRC
+				if crc.CalculateCRC(packetData) == fscReceived {
+					fmt.Println("Packet delivered with no mismatches")
+				} else {
+					fmt.Println("Packet delivered with mismatches")
+					packetData = crc.RestoreBit(packetData, fscReceived)
 				}
-				// Обрабатываем пакет
-				packets = append(packets, processPacket(currentData))
-				currentData = nil // Сбрасываем текущие данные для нового пакета
+				packets = append(packets, processPacket(packetData))
+				currentData = nil
 			}
-			// Пропускаем флаг и следующие три байта
-			i += 3
+
+			// Пропускаем флаг и следующие 3 байта
+			if i+3 < len(raw) {
+				i += 3
+			}
 			continue
 		}
 
-		// Добавляем байт в текущие данные
 		currentData = append(currentData, raw[i])
 	}
 
-	// Проверяем, остались ли данные после последнего флага
+	// Обработка последнего пакета
 	if len(currentData) > 0 {
-		if currentData[len(currentData)-1] == FCS {
-			currentData = currentData[:len(currentData)-1] // Убираем байт 1
+		packetData := currentData[:len(currentData)-4]
+		fscReceived := binary.BigEndian.Uint32(currentData[len(currentData)-4:])
+
+		// Проверка CRC
+		if crc.CalculateCRC(packetData) == fscReceived {
+			fmt.Println("Packet delivered with no mismatches")
+		} else {
+			fmt.Println("Packet delivered with mismatches")
+			packetData = crc.RestoreBit(packetData, fscReceived)
 		}
-		// Обрабатываем последний пакет
-		packets = append(packets, processPacket(currentData))
+		packets = append(packets, processPacket(packetData))
 	}
 
 	return packets, nil

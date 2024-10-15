@@ -2,7 +2,9 @@ package utils
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
+	"time"
 )
 
 func ItoaSlice(s []int) []string {
@@ -28,4 +30,17 @@ func LastCharacterAsNumber(s string) (int, error) {
 	}
 
 	return num, nil
+}
+
+func InvertRandomBitWithProbability(data []byte, probability float64) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	if rand.Float64() < probability {
+		randomByte := r.Intn(len(data))
+		randomBit := r.Intn(8)
+
+		data[randomByte] ^= 1 << randomBit
+
+		fmt.Printf("Inverted bit %d in byte %d\n", randomBit, randomByte)
+	}
 }
