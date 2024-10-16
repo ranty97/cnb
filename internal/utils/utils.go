@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"strconv"
 	"time"
@@ -19,14 +20,14 @@ func ItoaSlice(s []int) []string {
 
 func LastCharacterAsNumber(s string) (int, error) {
 	if len(s) == 0 {
-		return 0, fmt.Errorf("строка пуста")
+		return 0, fmt.Errorf("empty string")
 	}
 
 	lastChar := s[len(s)-1]
 	num, err := strconv.Atoi(string(lastChar))
 
 	if err != nil {
-		return 0, fmt.Errorf("последний символ '%c' не является числом", lastChar)
+		return 0, fmt.Errorf("last character '%c' not a number", lastChar)
 	}
 
 	return num, nil
@@ -41,6 +42,6 @@ func InvertRandomBitWithProbability(data []byte, probability float64) {
 
 		data[randomByte] ^= 1 << randomBit
 
-		fmt.Printf("Inverted bit %d in byte %d\n", randomBit, randomByte)
+		log.Printf("Inverted bit %d in byte %d\n", randomBit, randomByte)
 	}
 }

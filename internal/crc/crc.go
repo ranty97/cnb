@@ -1,6 +1,8 @@
 package crc
 
-import "fmt"
+import (
+	"log"
+)
 
 const (
 	poly32 = 0xEDB88320
@@ -23,12 +25,6 @@ func CalculateCRC(data []byte) uint32 {
 	return ^crc
 }
 
-func CheckCRC(data []byte, receivedCRC uint32) bool {
-	calculatedCRC := CalculateCRC(data)
-
-	return calculatedCRC == receivedCRC
-}
-
 func RestoreBit(data []byte, originalCRC uint32) []byte {
 	for byteIndex := 0; byteIndex < len(data); byteIndex++ {
 		for bitIndex := 0; bitIndex < 8; bitIndex++ {
@@ -40,12 +36,12 @@ func RestoreBit(data []byte, originalCRC uint32) []byte {
 			modifiedCRC := CalculateCRC(modifiedData)
 
 			if modifiedCRC == originalCRC {
-				fmt.Printf("Restored bit in byte %d, bit %d\n", byteIndex, bitIndex)
+				log.Printf("Restored bit in byte %d, bit %d\n", byteIndex, bitIndex)
 				return modifiedData
 			}
 		}
 	}
-	fmt.Println("Could not restore the data")
+	log.Println("Could not restore the data")
 
 	return data
 }

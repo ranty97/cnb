@@ -16,7 +16,7 @@ import (
 
 func main() {
 	App := app.New()
-	mainWindow := App.NewWindow("OKS LAB1")
+	mainWindow := App.NewWindow("Computer Networks Basics")
 	mainWindow.Resize(fyne.Size{Width: 500, Height: 265})
 
 	var sName, rName string

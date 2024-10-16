@@ -2,7 +2,6 @@ package com
 
 import (
 	"encoding/binary"
-	"fmt"
 	"github.com/ranty97/cnb/internal/crc"
 	"github.com/ranty97/cnb/internal/utils"
 	"log"
@@ -109,9 +108,9 @@ func DeserializeStream(raw []byte, processPacket func([]byte) []byte) ([][]byte,
 
 				// Проверка CRC
 				if crc.CalculateCRC(packetData) == fscReceived {
-					fmt.Println("Packet delivered with no mismatches")
+					log.Println("Packet delivered with no mismatches")
 				} else {
-					fmt.Println("Packet delivered with mismatches")
+					log.Println("Packet delivered with mismatches.\nContents of the received packet: ", string(packetData))
 					packetData = crc.RestoreBit(packetData, fscReceived)
 				}
 				packets = append(packets, processPacket(packetData))
@@ -135,9 +134,9 @@ func DeserializeStream(raw []byte, processPacket func([]byte) []byte) ([][]byte,
 
 		// Проверка CRC
 		if crc.CalculateCRC(packetData) == fscReceived {
-			fmt.Println("Packet delivered with no mismatches")
+			log.Println("Packet delivered with no mismatches")
 		} else {
-			fmt.Println("Packet delivered with mismatches")
+			log.Println("Packet delivered with mismatches.\nContents of the received packet: ", string(packetData))
 			packetData = crc.RestoreBit(packetData, fscReceived)
 		}
 		packets = append(packets, processPacket(packetData))
