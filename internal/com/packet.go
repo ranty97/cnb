@@ -89,6 +89,10 @@ func DeserializeStream(raw []byte, processPacket func([]byte) []byte) ([][]byte,
 	escaped := false
 
 	for i := 0; i < len(raw); i++ {
+		if raw[i] == jamSignal {
+			return [][]byte{}, nil
+		}
+
 		if escaped {
 			currentData = append(currentData, raw[i])
 			escaped = false

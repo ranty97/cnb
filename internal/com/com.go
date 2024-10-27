@@ -1,10 +1,18 @@
 package com
 
 import (
+	"fmt"
+	"github.com/ranty97/cnb/internal/collision"
 	"github.com/ranty97/cnb/internal/utils"
 	"go.bug.st/serial"
 	"log"
 	"math/rand"
+	"time"
+)
+
+const (
+	jamSignal byte = 0xFF
+	slotTime       = 500 * time.Millisecond
 )
 
 type Port struct {
@@ -51,14 +59,57 @@ func (p Port) SendBytes(data []byte) {
 	}
 	n, err := port.Write(data)
 	log.Println("Written", n, "bytes")
+
 	err = port.Close()
 	if err != nil {
 		return
 	}
 }
 
+//func (p Port) SendPacket(packet Packet) {
+//	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+//
+//	for i := 0; i < 10; i++ {
+//		log.Println(i)
+//		data := collision.RandomlyAddCollision(packet.SerializePacket())
+//		p.SendBytes(data)
+//
+//		if len(data) != len(packet.SerializePacket()) {
+//			log.Println("collision occurred")
+//			var jamSlice []byte
+//			jamSlice = append(jamSlice, jamSingnal)
+//			p.SendBytes(jamSlice)
+//			k := r.Intn(i + 1)
+//			log.Println("wait")
+//			time.Sleep(time.Duration(slotTime * (1 << k)))
+//		} else {
+//			log.Println("packet with no collision")
+//			return
+//		}
+//	}
+//}
+
 func (p Port) SendPacket(packet Packet) {
-	p.SendBytes(packet.SerializePacket())
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	for i := 0; i < 10; i++ {
+		log.Println(i)
+		data := collision.RandomlyAddCollision(packet.SerializePacket())
+		p.SendBytes(data)
+
+		if len(data) != len(packet.SerializePacket()) {
+			log.Println("Collision occurred")
+			jamSlice := append([]byte{}, jamSignal)
+			p.SendBytes(jamSlice)
+			k := r.Intn(i + 1)
+			log.Println("Waiting...")
+			time.Sleep(time.Duration(slotTime * (1 << k)))
+		} else {
+			log.Println("Packet sent with no collision")
+			return
+		}
+	}
+	log.Println("Failed to send packet after 10 attempts")
 }
 
 func (p Port) SendData(data []byte) int {
@@ -83,6 +134,7 @@ func (p Port) SendData(data []byte) int {
 
 func (p Port) ReceiveBytes() ([]byte, error) {
 	port, err := serial.Open(p.Name, &serial.Mode{BaudRate: p.Speed, Parity: p.Parity})
+
 	if err != nil {
 		log.Fatal("cannot open port")
 	}
@@ -92,19 +144,70 @@ func (p Port) ReceiveBytes() ([]byte, error) {
 	if readErr != nil {
 		return nil, err
 	}
+
 	err = port.Close()
 
 	log.Printf("Recieved %d bytes\n", n)
 	return buff[:n], nil
 }
 
+//func (p Port) ReceivePacket() ([][]byte, error) {
+//	data, err := p.ReceiveBytes()
+//	if err != nil {
+//		return [][]byte{}, err
+//	}
+//	//could use processing func (ex. destuffing)
+//	//return DeserializeStream(data, func(bytes []byte) []byte {
+//	//	return bytes
+//	//})
+//
+//	for i := 0; i < 10; i++ {
+//		result, _ := DeserializeStream(data, func(bytes []byte) []byte {
+//			return bytes
+//		})
+//		if result == nil {
+//			data, _ = p.ReceiveBytes()
+//			continue
+//		} else {
+//			return result, nil
+//		}
+//	}
+//	return [][]byte{}, nil
+//}
+
 func (p Port) ReceivePacket() ([][]byte, error) {
-	data, err := p.ReceiveBytes()
-	if err != nil {
-		return [][]byte{}, err
+	var packets [][]byte
+
+	for i := 0; i < 10; i++ {
+		data, err := p.ReceiveBytes()
+		log.Println("data : ", data)
+		if err != nil {
+			return nil, err
+		}
+		log.Println(data)
+		if data == nil {
+			break
+		}
+
+		if len(data) > 0 && data[len(data)-1] == jamSignal {
+			log.Println("Received jam signal, ignoring the packet...")
+			continue
+		}
+
+		result, err := DeserializeStream(data, func(bytes []byte) []byte {
+			return bytes
+		})
+		if err != nil {
+			log.Println("Failed to deserialize data, trying to receive more...")
+			continue
+		}
+
+		packets = append(packets, result...)
+		return packets, nil
 	}
-	//could use processing func (ex. destuffing)
-	return DeserializeStream(data, func(bytes []byte) []byte {
-		return bytes
-	})
+
+	if len(packets) == 0 {
+		return nil, fmt.Errorf("no packets received")
+	}
+	return packets, nil
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"strconv"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -104,6 +105,10 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Print("waiting for deadline")
+		time.Sleep(time.Second * 1)
+
+		print(string(utils.ConcatenateByteSlices(packet)))
 
 		updateLabel(string(utils.ConcatenateByteSlices(packet)))
 	})
