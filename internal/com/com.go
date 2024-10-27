@@ -4,6 +4,7 @@ import (
 	"github.com/ranty97/cnb/internal/utils"
 	"go.bug.st/serial"
 	"log"
+	"math/rand"
 	"strings"
 )
 
@@ -107,9 +108,16 @@ func (p Port) SendData(data []byte) int {
 	portNumber, _ := utils.LastCharacterAsNumber(p.Name)
 	packets, packetCount := SplitDataIntoPackets(data, byte(portNumber))
 
-	for _, packet := range packets {
-		p.SendPacket(packet)
-		log.Println(packet)
+	for {
+		if rand.Intn(2) == 0 {
+			for _, packet := range packets {
+				p.SendPacket(packet)
+				log.Println(packet)
+			}
+			break
+		} else {
+			log.Println("the transmission channel is busy")
+		}
 	}
 
 	log.Printf("Sent %d packets\n", packetCount)
