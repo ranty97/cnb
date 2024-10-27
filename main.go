@@ -105,7 +105,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		updateLabel(string(ConcatenateByteSlices(packet)))
+		updateLabel(string(utils.ConcatenateByteSlices(packet)))
 	})
 
 	l := container.NewVBox(
@@ -121,12 +121,4 @@ func main() {
 
 	mainWindow.SetContent(l)
 	mainWindow.ShowAndRun()
-}
-
-func ConcatenateByteSlices(slices [][]byte) []byte {
-	var result []byte
-	for _, slice := range slices {
-		result = append(result, slice...)
-	}
-	return result
 }

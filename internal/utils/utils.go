@@ -45,3 +45,11 @@ func InvertRandomBitWithProbability(data []byte, probability float64) {
 		log.Printf("Inverted bit %d in byte %d\n", randomBit, randomByte)
 	}
 }
+
+func ConcatenateByteSlices(slices [][]byte) []byte {
+	var result []byte
+	for _, slice := range slices {
+		result = append(result, slice...)
+	}
+	return result
+}
