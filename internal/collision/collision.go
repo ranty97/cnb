@@ -10,7 +10,7 @@ func RandomlyAddCollision(data []byte) []byte {
 
 	collisionalData := append(data, []byte{'a', 'b', 'c'}...)
 
-	if r.Float64() < 0.3 {
+	if r.Float64() < 0.6 {
 		return collisionalData
 	}
 

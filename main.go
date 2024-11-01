@@ -92,16 +92,21 @@ func main() {
 
 	sendButton := widget.NewButton("Send", func() {
 		msg, _ := inputMessageBinding.Get()
-		com.Port{
-			Name:   sName,
-			Speed:  sSpeed,
-			Parity: parityMode,
-		}.SendData([]byte(msg))
-		packet, err := com.Port{
-			Name:   rName,
-			Speed:  rSpeed,
-			Parity: parityMode,
-		}.ReceivePacket()
+		var packet [][]byte
+		var err error
+		// change logic of sending messages
+		for i := 0; i < 10; i++ {
+			com.Port{
+				Name:   sName,
+				Speed:  sSpeed,
+				Parity: parityMode,
+			}.SendData([]byte(msg))
+			packet, err = com.Port{
+				Name:   rName,
+				Speed:  rSpeed,
+				Parity: parityMode,
+			}.ReceivePacket()
+		}
 		if err != nil {
 			log.Fatal(err)
 		}

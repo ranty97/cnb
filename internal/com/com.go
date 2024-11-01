@@ -12,7 +12,7 @@ import (
 
 const (
 	jamSignal byte = 0xFF
-	slotTime       = 500 * time.Millisecond
+	slotTime       = 10 * time.Millisecond
 )
 
 type Port struct {
@@ -65,29 +65,6 @@ func (p Port) SendBytes(data []byte) {
 		return
 	}
 }
-
-//func (p Port) SendPacket(packet Packet) {
-//	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-//
-//	for i := 0; i < 10; i++ {
-//		log.Println(i)
-//		data := collision.RandomlyAddCollision(packet.SerializePacket())
-//		p.SendBytes(data)
-//
-//		if len(data) != len(packet.SerializePacket()) {
-//			log.Println("collision occurred")
-//			var jamSlice []byte
-//			jamSlice = append(jamSlice, jamSingnal)
-//			p.SendBytes(jamSlice)
-//			k := r.Intn(i + 1)
-//			log.Println("wait")
-//			time.Sleep(time.Duration(slotTime * (1 << k)))
-//		} else {
-//			log.Println("packet with no collision")
-//			return
-//		}
-//	}
-//}
 
 func (p Port) SendPacket(packet Packet) {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -150,30 +127,6 @@ func (p Port) ReceiveBytes() ([]byte, error) {
 	log.Printf("Recieved %d bytes\n", n)
 	return buff[:n], nil
 }
-
-//func (p Port) ReceivePacket() ([][]byte, error) {
-//	data, err := p.ReceiveBytes()
-//	if err != nil {
-//		return [][]byte{}, err
-//	}
-//	//could use processing func (ex. destuffing)
-//	//return DeserializeStream(data, func(bytes []byte) []byte {
-//	//	return bytes
-//	//})
-//
-//	for i := 0; i < 10; i++ {
-//		result, _ := DeserializeStream(data, func(bytes []byte) []byte {
-//			return bytes
-//		})
-//		if result == nil {
-//			data, _ = p.ReceiveBytes()
-//			continue
-//		} else {
-//			return result, nil
-//		}
-//	}
-//	return [][]byte{}, nil
-//}
 
 func (p Port) ReceivePacket() ([][]byte, error) {
 	var packets [][]byte
